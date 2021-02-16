@@ -12,6 +12,8 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 @Entity
 @Table(name = "employees")
 public class Employee {
@@ -34,6 +36,15 @@ public class Employee {
     private String phone;
     
     @NotNull
+    @Column(name="salary")
+    private String salary;
+    
+    @NotNull
+    @Column(name="date")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private String date;
+    
+    @NotNull
     @Email(message = "Please enter a valid e-mail address")
     @Column(name = "email")
     private String email;
@@ -41,6 +52,8 @@ public class Employee {
    
 	@Column(length=45,nullable=true)
     private String logo;
+	
+	
      
 	
 	public Employee() {
@@ -56,7 +69,9 @@ public Employee(int i, String string, String string2, String string3) {
 public long getId() {
         return id;
     }
-    public void setId(long id) {
+
+
+	public void setId(long id) {
         this.id = id;
     }
     public String getFirstName() {
@@ -79,7 +94,27 @@ public long getId() {
 	public void setPhone(String phone) {
 		this.phone = phone;
 	}
-    public String getEmail() {
+	
+    public String getSalary() {
+	return salary;
+}
+
+    
+public void setSalary(String salary) {
+	this.salary = salary;
+}
+
+
+	
+    public String getDate() {
+	return date;
+}
+
+public void setDate(String date) {
+	this.date = date;
+}
+
+	public String getEmail() {
         return email;
     }
     public void setEmail(String email) {

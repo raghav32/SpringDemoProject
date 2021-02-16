@@ -6,11 +6,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -24,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.supercsv.io.CsvBeanWriter;
+import org.supercsv.io.ICsvBeanWriter;
+import org.supercsv.prefs.CsvPreference;
 
 import com.example.demo.com.example.demo.model.Employee;
 import com.example.demo.com.example.demo.service.EmployeeService;
@@ -38,8 +44,7 @@ public class EmployeeController implements WebMvcConfigurer{
     // display list of employees
     @GetMapping("/")
     public String viewHomePage(Model model) {
-        model.addAttribute("listEmployees", employeeService.getAllEmployees());
-        return "index";
+       return findPaginated(1,"salary","asc", model);
     }
     
     
@@ -89,7 +94,7 @@ public class EmployeeController implements WebMvcConfigurer{
     
     @GetMapping("/showUserImage/{id}/{logo}")
     public String getImage(@PathVariable(value="id") long id,@PathVariable(value="logo") String logo,Model model) {
-    	Employee employee = employeeService.getEmployeeById(id);
+    	//Employee employee = employeeService.getEmployeeById(id);
     	
     	Path employeeUploadDir=Paths.get("./brand-logos");
     	String employeeUploadPath=employeeUploadDir.toFile().getAbsolutePath();
@@ -114,4 +119,56 @@ public class EmployeeController implements WebMvcConfigurer{
         this.employeeService.deleteEmployeeById(id);
         return "redirect:/";
     }
+    
+    // /page/1?sortField=name&sortDir=asc    generating this for sorting
+    
+    @GetMapping("/page/{pageNo}")
+    public String findPaginated(@PathVariable(value = "pageNo") int pageNo,
+        @RequestParam("sortField") String sortField,
+        @RequestParam("sortDir") String sortDir,
+        Model model) {
+        int pageSize = 5;
+
+        Page < Employee > page = employeeService.findPaginated(pageNo, pageSize, sortField, sortDir);
+        List < Employee > listEmployees = page.getContent();
+
+        model.addAttribute("currentPage", pageNo);
+        model.addAttribute("totalPages", page.getTotalPages());
+        model.addAttribute("totalItems", page.getTotalElements());
+
+        model.addAttribute("sortField", sortField);
+        model.addAttribute("sortDir", sortDir);
+        model.addAttribute("reverseSortDir", sortDir.equals("asc") ? "desc" : "asc");
+
+        model.addAttribute("listEmployees", listEmployees);
+        return "index";
+    }
+    
+    @GetMapping("/employee/export")
+    public void exportToCSV(HttpServletResponse response) throws IOException {
+    	
+    	response.setContentType("text/csv");
+    	String fileName="employee.csv";
+    	
+    	String headerKey="Content-Disposition";
+    	String headerValue="attachment; fileName="+fileName;
+    	
+    	response.setHeader(headerKey, headerValue);
+    	
+    	List<Employee> listEmployees=employeeService.getAllEmployees();
+    	ICsvBeanWriter csvWriter=new CsvBeanWriter(response.getWriter(),CsvPreference.STANDARD_PREFERENCE);
+    	
+    	String[] csvHeader= {"Employee ID", "Email", "First Name", "Last Name", "Salary","Date", "Phone Number"};
+    	String[] nameMapping= {"id", "email", "firstName", "lastName", "salary","date", "phone"};
+    	
+    	csvWriter.writeHeader(csvHeader);
+    	
+    	for(Employee employee:listEmployees) {
+    		csvWriter.write(employee, nameMapping);
+    	}
+    	
+    	csvWriter.close();
+    	
+    }
+    
 }
